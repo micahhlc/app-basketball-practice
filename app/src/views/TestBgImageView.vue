@@ -21,10 +21,10 @@ export default {
   name: 'PositionedButtons',
   methods: {
     handleClick1() {
-      console.log('Button 1 clicked');
+      // Button 1 click handler
     },
     handleClick2() {
-      console.log('Button 2 clicked');
+      // Button 2 click handler
     },
   },
 };

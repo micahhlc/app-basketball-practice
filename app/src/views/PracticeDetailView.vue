@@ -154,6 +154,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+const ALERT_DISMISS_MS = 3000;
+
 // Data
 const router = useRouter();
 const route = useRoute();
@@ -173,15 +175,14 @@ const makes = ref(0);
 const misses = ref(0);
 const attempts = ref(0);
 const isBulkMode = ref(true);
-// togggle input mode
+// Toggle input mode
 const toggleInputMode = () => {
   if (isBulkMode.value) {
     misses.value = attempts.value - makes.value;
   }
   isBulkMode.value = !isBulkMode.value;
-  console.log('isBulkMode:', isBulkMode.value);
 };
-// Live moode log makes and misses
+// Live mode log makes and misses
 const logMake = () => {
   makes.value++;
   // totalShots.value++;
@@ -196,23 +197,19 @@ const logMiss = () => {
 const logRound = () => {
   if (attempts.value === 0) {
     alertMessage.value = "You haven't taken any shots!";
-    setTimeout(() => (alertMessage.value = ''), 3000);
+    setTimeout(() => (alertMessage.value = ''), ALERT_DISMISS_MS);
     return;
   }
   if (makes.value > attempts.value) {
     alertMessage.value = 'Makes cannot be greater than Total Shots!';
-    setTimeout(() => (alertMessage.value = ''), 3000);
+    setTimeout(() => (alertMessage.value = ''), ALERT_DISMISS_MS);
     return;
   }
   if (!makes.value) {
     alertMessage.value = 'Wrong input!';
-    setTimeout(() => (alertMessage.value = ''), 3000);
+    setTimeout(() => (alertMessage.value = ''), ALERT_DISMISS_MS);
     return;
   }
-  // if (!isBulkMode) {
-  //   misses.value = attempts.value - makes.value;
-  // }
-  console.log('p-d: Log Round', makes.value, attempts.value);
   rounds.value.push({ makes: makes.value, attempts: attempts.value });
   totalShots.value += attempts.value;
   makes.value = 0;
@@ -223,13 +220,13 @@ const logRound = () => {
 // Save rounds used variables
 const rounds = ref([]);
 const alertMessage = ref('');
-let currentSession = {}; //onMount and savePracticeSession
+let currentSession = null; //onMount and savePracticeSession
 
 // Save Practice Session
 const savePracticeSession = () => {
   if (rounds.value.length === 0) {
     alertMessage.value = 'No rounds to save.';
-    setTimeout(() => (alertMessage.value = ''), 3000);
+    setTimeout(() => (alertMessage.value = ''), ALERT_DISMISS_MS);
     return;
   }
 
@@ -243,7 +240,12 @@ const savePracticeSession = () => {
   };
 
   // Load existing sessions (as an object)
-  const storedSessions = JSON.parse(localStorage.getItem('sessions')) || {};
+  let storedSessions = {};
+  try {
+    storedSessions = JSON.parse(localStorage.getItem('sessions')) || {};
+  } catch {
+    storedSessions = {};
+  }
 
   // Add or update the session by ID
   storedSessions[sessionId] = sessionData;
@@ -252,7 +254,7 @@ const savePracticeSession = () => {
   localStorage.setItem('sessions', JSON.stringify(storedSessions)); //sessions
   localStorage.setItem('currentSession', JSON.stringify(sessionData)); //Current session only
   alertMessage.value = 'Practice session saved!';
-  setTimeout(() => (alertMessage.value = ''), 3000);
+  setTimeout(() => (alertMessage.value = ''), ALERT_DISMISS_MS);
 };
 
 // Edit and Delete Rounds
@@ -265,20 +267,19 @@ const editRound = (index) => {
   tempAttempts.value = rounds.value[editingIndex.value].attempts;
 };
 const saveEdit = (index) => {
-  console.log(index, tempMakes.value, tempAttempts.value);
   if (tempAttempts.value === 0) {
     alertMessage.value = "You haven't taken any shots!";
-    setTimeout(() => (alertMessage.value = ''), 3000);
+    setTimeout(() => (alertMessage.value = ''), ALERT_DISMISS_MS);
     return;
   }
   if (tempMakes.value > tempAttempts.value) {
     alertMessage.value = 'Makes cannot be greater than Total Shots!';
-    setTimeout(() => (alertMessage.value = ''), 3000);
+    setTimeout(() => (alertMessage.value = ''), ALERT_DISMISS_MS);
     return;
   }
   if (!tempMakes.value) {
     alertMessage.value = 'Wrong input!';
-    setTimeout(() => (alertMessage.value = ''), 3000);
+    setTimeout(() => (alertMessage.value = ''), ALERT_DISMISS_MS);
     return;
   }
   rounds.value[editingIndex.value].makes = tempMakes.value;
@@ -296,20 +297,18 @@ const deleteRound = (index) => {
 };
 
 onMounted(() => {
-  console.log('p-d: Session ID:', sessionId);
-  console.log('p-d: Goal:', goal);
   if (!sessionId) {
     router.push('/practice-g'); // Redirect to goal setting page
     return;
   }
-  currentSession = JSON.parse(localStorage.getItem('currentSession'));
+  try {
+    currentSession = JSON.parse(localStorage.getItem('currentSession'));
+  } catch {
+    currentSession = null;
+  }
   if (currentSession?.rounds?.length > 0 && currentSession.sessionId == sessionId) {
-    console.log('p-d: currentSession:', currentSession);
     rounds.value = currentSession.rounds;
     totalShots.value = currentSession.totalShots;
-    console.log('p-d: Rounds:', rounds.value[0]);
-  } else {
-    console.log('p-d: No existing session found');
   }
 });
 </script>

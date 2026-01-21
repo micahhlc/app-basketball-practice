@@ -58,19 +58,19 @@ function getYYYYMMDD() {
 
 onMounted(() => {
   // Retrieve session ID and check if it's from today
-  currentSession = JSON.parse(localStorage.getItem('currentSession'));
+  try {
+    currentSession = JSON.parse(localStorage.getItem('currentSession'));
+  } catch {
+    currentSession = null;
+  }
   if (currentSession?.sessionId?.includes(todayDate)) {
     sameDaySession.value = true;
-    console.log('p-g: same day session found');
-  } else {
-    console.log('p-g: No same day session found');
   }
 });
 
 // Function to start a new or continue an existing practice session
 const startPractice = (reloadPrevious) => {
-  if (reloadPrevious && sameDaySession) {
-    console.log('p-g: reload true: ', sessionId);
+  if (reloadPrevious && sameDaySession.value) {
     sessionId = currentSession.sessionId;
     router.push({
       path: '/practice-d',
@@ -80,7 +80,6 @@ const startPractice = (reloadPrevious) => {
       },
     });
   } else {
-    console.log('p-g: reload false: ', sessionId);
     sessionId = `session-${todayDate}-${Date.now()}`;
     router.push({
       path: '/practice-d',
