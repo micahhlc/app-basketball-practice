@@ -29,7 +29,7 @@
       <p class="pb-4">You have a session from today. Do you want to continue?</p>
       <div class="m-4 flex justify-between gap-2 rounded-lg border border-blue-300 bg-blue-100 p-4 shadow-md">
         <label for="goal" class="text-w text-lg font-bold"> Goal: </label>
-        <span class="text-gray-400">{{ currentSession.goal }}</span>
+        <span class="text-gray-400">{{ sessionStore.currentSession.goal }}</span>
       </div>
 
       <button @click="startPractice(true)" class="mt-2 rounded-lg bg-green-500 px-6 py-2 text-white shadow-md">
@@ -40,15 +40,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useSessionStore } from '@/stores/sessionStore';
 
 const router = useRouter();
+const sessionStore = useSessionStore();
 const todayDate = getYYYYMMDD(); // Generate today's date string
 const goal = ref(200);
-const sameDaySession = ref(false);
-let sessionId = '';
-let currentSession = {};
 
 // Function to get YYYYMMDD format date
 function getYYYYMMDD() {
@@ -56,27 +55,27 @@ function getYYYYMMDD() {
   return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
 }
 
+// Check if current session is from today
+const sameDaySession = computed(() => {
+  return sessionStore.currentSession?.sessionId?.includes(todayDate);
+});
+
 onMounted(() => {
-  // Retrieve session ID and check if it's from today
-  try {
-    currentSession = JSON.parse(localStorage.getItem('currentSession'));
-  } catch {
-    currentSession = null;
-  }
-  if (currentSession?.sessionId?.includes(todayDate)) {
-    sameDaySession.value = true;
-  }
+  // Load session from localStorage into Pinia store
+  sessionStore.loadFromLocalStorage();
 });
 
 // Function to start a new or continue an existing practice session
 const startPractice = (reloadPrevious) => {
+  let sessionId;
+  
   if (reloadPrevious && sameDaySession.value) {
-    sessionId = currentSession.sessionId;
+    sessionId = sessionStore.currentSession.sessionId;
     router.push({
       path: '/practice-d',
       query: {
         sessionId: sessionId,
-        goal: currentSession.goal,
+        goal: sessionStore.currentSession.goal,
       },
     });
   } else {

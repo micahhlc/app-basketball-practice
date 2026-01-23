@@ -153,12 +153,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useSessionStore } from '@/stores/sessionStore';
 
 const ALERT_DISMISS_MS = 3000;
 
 // Data
 const router = useRouter();
 const route = useRoute();
+const sessionStore = useSessionStore();
 const sessionId = route.query.sessionId; //from practice-g
 const goal = Number(route.query.goal); //from practice-g
 const goalReached = computed(() => totalShots.value >= goal);
@@ -220,7 +222,6 @@ const logRound = () => {
 // Save rounds used variables
 const rounds = ref([]);
 const alertMessage = ref('');
-let currentSession = null; //onMount and savePracticeSession
 
 // Save Practice Session
 const savePracticeSession = () => {
@@ -239,20 +240,19 @@ const savePracticeSession = () => {
     rounds: [...rounds.value],
   };
 
-  // Load existing sessions (as an object)
-  let storedSessions = {};
-  try {
-    storedSessions = JSON.parse(localStorage.getItem('sessions')) || {};
-  } catch {
-    storedSessions = {};
+  // Save to Pinia store (which handles localStorage)
+  sessionStore.saveCurrentSession(sessionData);
+  
+  // Update sessions history
+  const sessions = sessionStore.sessions;
+  const existingIndex = sessions.findIndex(s => s.sessionId === sessionId);
+  if (existingIndex >= 0) {
+    sessions[existingIndex] = sessionData;
+  } else {
+    sessions.push(sessionData);
   }
+  sessionStore.updateSessions(sessions);
 
-  // Add or update the session by ID
-  storedSessions[sessionId] = sessionData;
-
-  // Save back to localStorage
-  localStorage.setItem('sessions', JSON.stringify(storedSessions)); //sessions
-  localStorage.setItem('currentSession', JSON.stringify(sessionData)); //Current session only
   alertMessage.value = 'Practice session saved!';
   setTimeout(() => (alertMessage.value = ''), ALERT_DISMISS_MS);
 };
@@ -301,11 +301,11 @@ onMounted(() => {
     router.push('/practice-g'); // Redirect to goal setting page
     return;
   }
-  try {
-    currentSession = JSON.parse(localStorage.getItem('currentSession'));
-  } catch {
-    currentSession = null;
-  }
+  
+  // Load from Pinia store
+  sessionStore.loadFromLocalStorage();
+  const currentSession = sessionStore.currentSession;
+  
   if (currentSession?.rounds?.length > 0 && currentSession.sessionId == sessionId) {
     rounds.value = currentSession.rounds;
     totalShots.value = currentSession.totalShots;
